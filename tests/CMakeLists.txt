@@ -2,6 +2,7 @@
 #
 #   unit/         assertion-based tests for one algorithm or component
 #   integration/  tests for the Solar System scene, which combines them
+#   visual/       programs that draw each algorithm into output/*.bmp
 #
 # Run everything from the project root with:
 #   cmake -S . -B build
@@ -30,6 +31,19 @@ function(stellar_add_integration_test name)
         LABELS "integration"
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
     )
+endfunction()
+
+# Adds tests/visual/<name>.cpp. It saves a BMP into the project's output/
+# folder as visual evidence and fails if nothing is drawn or saved.
+function(stellar_add_visual_test name)
+    add_executable(${name} visual/${name}.cpp)
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/support)
+    target_compile_definitions(${name} PRIVATE
+        STELLAR_OUTPUT_DIR="${PROJECT_SOURCE_DIR}/output"
+    )
+
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES LABELS "visual")
 endfunction()
 
 # Unit tests
