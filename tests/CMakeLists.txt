@@ -20,3 +20,4 @@ function(stellar_add_unit_test name)
 endfunction()
 
 stellar_add_unit_test(test_raster_canvas)
+stellar_add_unit_test(test_dda)
