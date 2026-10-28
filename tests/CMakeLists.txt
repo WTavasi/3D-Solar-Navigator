@@ -1,6 +1,7 @@
 # Test targets for Project Stellar.
 #
 #   unit/         assertion-based tests for one algorithm or component
+#   integration/  tests for the Solar System scene, which combines them
 #
 # Run everything from the project root with:
 #   cmake -S . -B build
@@ -19,6 +20,19 @@ function(stellar_add_unit_test name)
     )
 endfunction()
 
+# Adds tests/integration/<name>.cpp as an executable and registers it.
+function(stellar_add_integration_test name)
+    add_executable(${name} integration/${name}.cpp)
+    target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/support)
+
+    add_test(NAME ${name} COMMAND ${name})
+    set_tests_properties(${name} PROPERTIES
+        LABELS "integration"
+        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endfunction()
+
+# Unit tests
 stellar_add_unit_test(test_raster_canvas)
 stellar_add_unit_test(test_dda)
 stellar_add_unit_test(test_bresenham)
@@ -29,3 +43,6 @@ stellar_add_unit_test(test_midpoint_circle)
 stellar_add_unit_test(test_midpoint_ellipse)
 stellar_add_unit_test(test_bezier_curve)
 stellar_add_unit_test(test_catmull_rom_spline)
+
+# Integration tests
+stellar_add_integration_test(test_solar_system_scene)
