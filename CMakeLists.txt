@@ -58,3 +58,11 @@ add_executable(bezier_curve
 add_executable(catmull_rom_spline
     src/algorithms/curves/catmull_rom_spline.cpp
 )
+
+# Tests (see docs/TESTING.md)
+option(STELLAR_BUILD_TESTS "Build the unit, integration and visual tests" ON)
+
+if(STELLAR_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

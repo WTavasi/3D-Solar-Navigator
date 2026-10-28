@@ -3,47 +3,9 @@
 #include <set>
 #include <utility>
 
+#include "algorithms/shapes/midpoint_circle.h"
+
 using namespace std;
-
-set<pair<int, int>> drawMidpointCircle(
-    int centerX,
-    int centerY,
-    int radius
-) {
-    set<pair<int, int>> circlePoints;
-
-    if (radius < 0) {
-        return circlePoints;
-    }
-
-    int horizontalOffset = 0;
-    int verticalOffset = radius;
-    int decisionParameter = 1 - radius;
-
-    while (horizontalOffset <= verticalOffset) {
-        circlePoints.insert({centerX + horizontalOffset, centerY + verticalOffset});
-        circlePoints.insert({centerX - horizontalOffset, centerY + verticalOffset});
-        circlePoints.insert({centerX + horizontalOffset, centerY - verticalOffset});
-        circlePoints.insert({centerX - horizontalOffset, centerY - verticalOffset});
-
-        circlePoints.insert({centerX + verticalOffset, centerY + horizontalOffset});
-        circlePoints.insert({centerX - verticalOffset, centerY + horizontalOffset});
-        circlePoints.insert({centerX + verticalOffset, centerY - horizontalOffset});
-        circlePoints.insert({centerX - verticalOffset, centerY - horizontalOffset});
-
-        horizontalOffset++;
-
-        if (decisionParameter < 0) {
-            decisionParameter += 2 * horizontalOffset + 1;
-        } else {
-            verticalOffset--;
-            decisionParameter +=
-                2 * (horizontalOffset - verticalOffset) + 1;
-        }
-    }
-
-    return circlePoints;
-}
 
 int main() {
     int centerX = 10;

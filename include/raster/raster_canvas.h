@@ -3,10 +3,29 @@
 #define RASTER_CANVAS_H
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <fstream>
 #include <string>
 #include <vector>
+
+// An RGB colour with one byte per channel.
+struct Color {
+    std::uint8_t red;
+    std::uint8_t green;
+    std::uint8_t blue;
+};
+
+inline bool operator==(const Color& first, const Color& second) {
+    return first.red == second.red &&
+           first.green == second.green &&
+           first.blue == second.blue;
+}
+
+inline bool operator!=(const Color& first, const Color& second) {
+    return !(first == second);
+}
 
 class RasterCanvas {
 private:
@@ -15,10 +34,19 @@ private:
     std::vector<std::uint8_t> pixels;
 
 public:
-    RasterCanvas(int canvasWidth, int canvasHeight)
+    // The background defaults to white so existing callers are unchanged.
+    RasterCanvas(int canvasWidth, int canvasHeight,
+                 std::uint8_t backgroundRed = 255,
+                 std::uint8_t backgroundGreen = 255,
+                 std::uint8_t backgroundBlue = 255)
         : width(canvasWidth),
           height(canvasHeight),
-          pixels(canvasWidth * canvasHeight * 3, 255) {
+          pixels(canvasWidth * canvasHeight * 3) {
+        for (std::size_t index = 0; index < pixels.size(); index += 3) {
+            pixels[index] = backgroundRed;
+            pixels[index + 1] = backgroundGreen;
+            pixels[index + 2] = backgroundBlue;
+        }
     }
 
     int getWidth() const {
@@ -27,6 +55,26 @@ public:
 
     int getHeight() const {
         return height;
+    }
+
+    // True when (x, y) lies on the canvas.
+    bool contains(int x, int y) const {
+        return x >= 0 && x < width && y >= 0 && y < height;
+    }
+
+    // Read back a pixel. Coordinates off the canvas return black.
+    Color getPixel(int x, int y) const {
+        if (!contains(x, y)) {
+            return {0, 0, 0};
+        }
+
+        int index = (y * width + x) * 3;
+
+        return {pixels[index], pixels[index + 1], pixels[index + 2]};
+    }
+
+    void setPixel(int x, int y, const Color& color) {
+        setPixel(x, y, color.red, color.green, color.blue);
     }
 
     void setPixel(int x, int y,
@@ -44,6 +92,10 @@ public:
         pixels[index] = red;
         pixels[index + 1] = green;
         pixels[index + 2] = blue;
+    }
+
+    void drawLine(int x1, int y1, int x2, int y2, const Color& color) {
+        drawLine(x1, y1, x2, y2, color.red, color.green, color.blue);
     }
 
     void drawLine(int x1, int y1, int x2, int y2,

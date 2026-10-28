@@ -33,7 +33,9 @@ jobs:
 
     - name: Test
       working-directory: ${{github.workspace}}/build
-      # Execute tests defined by the CMake configuration.
+      # Run the unit, integration and visual tests registered in tests/CMakeLists.txt.
+      # --no-tests=error fails the job if no tests are found, so the step can
+      # never pass by running nothing. --output-on-failure prints which checks failed.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}}
+      run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure --no-tests=error
 
