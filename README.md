@@ -139,10 +139,14 @@ The main project files are organized as follows:
 ├── include/
 │   ├── raster/
 │   │   └── raster_canvas.h
-│   └── algorithms/
-│       └── shapes/
-│           ├── midpoint_circle.h
-│           └── midpoint_ellipse.h
+│   ├── algorithms/
+│   │   ├── geometry.h
+│   │   ├── lines/
+│   │   ├── polygons/
+│   │   ├── shapes/
+│   │   └── curves/
+│   └── scene/
+│       └── solar_system_scene.h
 ├── src/
 │   ├── main.cpp
 │   └── algorithms/
@@ -160,15 +164,22 @@ The main project files are organized as follows:
 │           ├── bezier_curve.cpp
 │           └── catmull_rom_spline.cpp
 ├── tests/
+│   ├── support/
+│   ├── unit/
+│   ├── integration/
+│   └── visual/
 ├── output/
 ├── docs/
+│   └── TESTING.md
 ├── screenshots/
 ├── CMakeLists.txt
 ├── .gitignore
 └── README.md
 ```
 
-The structure shows the intended organization of the project. Some folders, such as `docs/` and `screenshots/`, may remain empty. Generated BMP images are stored in `output/`.
+The structure shows the intended organization of the project. Some folders, such as `screenshots/`, may remain empty. Generated BMP images are stored in `output/`.
+
+Each algorithm is implemented once, in a header under `include/algorithms/`. The demo programs in `src/algorithms/`, the tests and the Solar System scene all include those headers, so the tests check the same code the application uses.
 
 ## 8. How to Compile and Run the Current Version
 
@@ -228,21 +239,19 @@ The main application executable can be launched with:
 
 These commands assume the corresponding targets build successfully. The current `CMakeLists.txt` defines the algorithm executables and the `stellar` executable.
 
-### Generate the Solar System Graphics Test Output
+On macOS and Linux, run the same programs with `./build/<name>` instead of `.\build\<name>.exe`.
 
-If the Solar System graphics test is implemented as a standalone source file, compile and run it with:
+### Run the Tests and Generate the Graphics Output
 
-```powershell
-g++ -std=c++17 -I include tests/solar_system_graphics_test.cpp -o build/solar_system_graphics_test.exe
-.\build\solar_system_graphics_test.exe
-```
-
-The generated image filename depends on the output path defined in the test source. If it generates `solar_system_output.bmp` in the project root, copy it into the output directory:
+After building, run all of the tests:
 
 ```powershell
-New-Item -ItemType Directory -Force output
-Copy-Item solar_system_output.bmp output\solar_system_output.bmp -Force
+ctest --test-dir build --output-on-failure
 ```
+
+This runs the unit tests for every algorithm, the Solar System integration tests, and the visual tests. The visual tests also regenerate every image in `output/`, including `solar_system_output.bmp`.
+
+See [docs/TESTING.md](docs/TESTING.md) for how the tests work, how to run a single test, and the full test report.
 
 ## 9. Current Progress
 
@@ -260,7 +269,8 @@ Current progress includes:
 - Established a CMake build configuration.
 - Organized the source code into algorithm categories.
 - Set up Git and GitHub for collaboration.
-- Started the Solar System visualization and graphics testing.
+- Started the Solar System visualization.
+- Added automated unit, integration and visual tests (96 test cases) that run on every pull request.
 
 The next stages focus on improving the visualization, integrating the graphics components, testing the outputs, and extending the scene.
 
@@ -270,7 +280,7 @@ The next stages focus on improving the visualization, integrating the graphics c
 - Graphics output is currently generated as BMP images.
 - The Solar System visualization is an initial implementation and is not yet a complete interactive 3D simulation.
 - Some planned features, including camera and navigation controls, may require further implementation and integration.
-- The test files and testing procedures may require further development to provide comprehensive automated testing.
+- The automated tests cover the 2D raster algorithms and scene. The planned 3D transformations, camera and animation will need tests of their own as they are added.
 - Individual algorithms are built as separate executables, while the main application continues to develop.
 - Generated output images must be committed to Git if they are to appear in the GitHub README.
 - Some visual features may need refinement to improve the appearance and accuracy of the Solar System scene.
