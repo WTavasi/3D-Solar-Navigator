@@ -1,101 +1,43 @@
-﻿#include <iostream>
+// Visual test: scan-line filling of a convex and a concave polygon.
+// Output: output/polygon_filling_output.bmp
+
 #include <vector>
-#include <algorithm>
-#include <cmath>
-#include "raster/raster_canvas.h"
 
-using Point = std::pair<int, int>;
-using Polygon = std::vector<Point>;
+#include "algorithms/polygons/polygon_filling.h"
+#include "visual_output.h"
 
-void fillPolygon(
-    RasterCanvas& canvas,
-    const Polygon& polygon,
-    unsigned char r,
-    unsigned char g,
-    unsigned char b
-) {
-    if (polygon.size() < 3) return;
+namespace {
 
-    int minY = polygon[0].second;
-    int maxY = polygon[0].second;
-
-    for (const auto& p : polygon) {
-        minY = std::min(minY, p.second);
-        maxY = std::max(maxY, p.second);
+void fillAndOutline(RasterCanvas& canvas, const std::vector<Point>& polygon,
+                    const Color& fill) {
+    for (const FillSpan& span : computeFillSpans(polygon)) {
+        canvas.drawLine(span.startX, span.y, span.endX, span.y, fill);
     }
 
-    for (int y = minY; y <= maxY; y++) {
-        std::vector<double> intersections;
-
-        for (size_t i = 0; i < polygon.size(); i++) {
-            Point a = polygon[i];
-            Point b = polygon[(i + 1) % polygon.size()];
-
-            // Ignore horizontal edges.
-            if (a.second == b.second) continue;
-
-            // Include the lower endpoint, exclude the upper endpoint.
-            int lowY = std::min(a.second, b.second);
-            int highY = std::max(a.second, b.second);
-
-            if (y < lowY || y >= highY) continue;
-
-            double x = a.first +
-                static_cast<double>(y - a.second) *
-                (b.first - a.first) /
-                (b.second - a.second);
-
-            intersections.push_back(x);
-        }
-
-        std::sort(intersections.begin(), intersections.end());
-
-        for (size_t i = 0; i + 1 < intersections.size(); i += 2) {
-            int xStart = static_cast<int>(
-                std::ceil(intersections[i])
-            );
-
-            int xEnd = static_cast<int>(
-                std::floor(intersections[i + 1])
-            );
-
-            for (int x = xStart; x <= xEnd; x++) {
-                canvas.setPixel(x, y, r, g, b);
-            }
-        }
-    }
+    drawPolygonOutline(canvas, polygon, VISUAL_WHITE);
 }
 
-void drawOutline(RasterCanvas& canvas, const Polygon& polygon) {
-    for (size_t i = 0; i < polygon.size(); i++) {
-        const auto& a = polygon[i];
-        const auto& b = polygon[(i + 1) % polygon.size()];
-
-        canvas.drawLine(
-            a.first, a.second,
-            b.first, b.second,
-            255, 255, 255
-        );
-    }
-}
+}  // namespace
 
 int main() {
-    RasterCanvas canvas(800, 600);
+    RasterCanvas canvas = makeVisualCanvas(800, 600);
 
-    Polygon spacecraft = {
-        {400, 100},
-        {500, 250},
-        {460, 420},
-        {340, 420},
-        {300, 250}
-    };
+    // Convex: the spacecraft shape. Every scan line has one span.
+    fillAndOutline(canvas,
+                   {{220, 100}, {320, 250}, {280, 420}, {160, 420}, {120, 250}},
+                   VISUAL_BLUE);
 
-    fillPolygon(canvas, spacecraft, 0, 150, 255);
-    drawOutline(canvas, spacecraft);
+    // Concave: a star. Scan lines through the points have two or three
+    // spans, and spans meeting at an inner corner are joined.
+    fillAndOutline(canvas,
+                   {{580, 80}, {616, 185}, {730, 194}, {640, 260}, {670, 374},
+                    {580, 305}, {490, 374}, {520, 260}, {430, 194}, {544, 185}},
+                   VISUAL_ORANGE);
 
-    canvas.saveBMP("output/polygon_filling_output.bmp");
+    // Concave: a notch cut into the top edge.
+    fillAndOutline(canvas,
+                   {{430, 560}, {730, 560}, {730, 420}, {580, 500}, {430, 420}},
+                   VISUAL_MAGENTA);
 
-    std::cout << "Polygon filling test completed.\n";
-    return 0;
+    return saveVisualOutput(canvas, "polygon_filling_output.bmp");
 }
-

@@ -1,64 +1,58 @@
-﻿#include <iostream>
+// Visual test: one polygon translated, scaled and rotated.
+// Output: output/polygon_operations_output.bmp
+
 #include <vector>
-#include <utility>
-#include "raster/raster_canvas.h"
 
-using Point = std::pair<int, int>;
-using Polygon = std::vector<Point>;
+#include "algorithms/polygons/polygon_representation_and_operations.h"
+#include "visual_output.h"
 
-void drawPolygon(
-    RasterCanvas& canvas,
-    const Polygon& polygon,
-    unsigned char r,
-    unsigned char g,
-    unsigned char b
-) {
-    if (polygon.size() < 2) return;
+namespace {
 
-    for (size_t i = 0; i < polygon.size(); i++) {
-        size_t next = (i + 1) % polygon.size();
+Point centroid(const std::vector<Point>& polygon) {
+    Point sum = {0, 0};
 
-        canvas.drawLine(
-            polygon[i].first,
-            polygon[i].second,
-            polygon[next].first,
-            polygon[next].second,
-            r, g, b
-        );
-    }
-}
-
-Polygon translatePolygon(const Polygon& polygon, int dx, int dy) {
-    Polygon result;
-
-    for (const auto& point : polygon) {
-        result.push_back({
-            point.first + dx,
-            point.second + dy
-        });
+    for (const Point& vertex : polygon) {
+        sum.x += vertex.x;
+        sum.y += vertex.y;
     }
 
-    return result;
+    return {sum.x / polygon.size(), sum.y / polygon.size()};
 }
+
+}  // namespace
 
 int main() {
-    RasterCanvas canvas(800, 600);
+    RasterCanvas canvas = makeVisualCanvas(800, 600);
 
-    Polygon original = {
-        {100, 150},
-        {220, 100},
-        {280, 220},
-        {170, 280}
+    const std::vector<Point> original = {
+        {100, 150}, {220, 100}, {280, 220}, {170, 280}
     };
 
-    Polygon translated = translatePolygon(original, 300, 150);
+    // Red: the original polygon.
+    drawPolygonOutline(canvas, original, VISUAL_RED);
 
-    drawPolygon(canvas, original, 255, 0, 0);
-    drawPolygon(canvas, translated, 0, 255, 0);
+    // Green: translated 400 pixels to the right.
+    std::vector<Point> translated = original;
+    translatePolygon(translated, 400, 0);
+    drawPolygonOutline(canvas, translated, VISUAL_GREEN);
 
-    canvas.saveBMP("output/polygon_operations_output.bmp");
+    // Blue: moved down, then scaled by 1.4 about its own centre (marked).
+    std::vector<Point> scaled = original;
+    translatePolygon(scaled, 0, 270);
+    const Point scaleCentre = centroid(scaled);
+    scalePolygon(scaled, 1.4, scaleCentre);
+    drawPolygonOutline(canvas, scaled, VISUAL_BLUE);
+    markPoint(canvas, scaleCentre, 3, VISUAL_WHITE);
 
-    std::cout << "Polygon operations test completed.\n";
-    return 0;
+    // Yellow: moved down and right, then rotated 45 degrees about its
+    // centre (marked). The dim outline shows it before rotation.
+    std::vector<Point> rotated = original;
+    translatePolygon(rotated, 400, 270);
+    drawPolygonOutline(canvas, rotated, VISUAL_GREY);
+    const Point rotationCentre = centroid(rotated);
+    rotatePolygon(rotated, 45, rotationCentre);
+    drawPolygonOutline(canvas, rotated, VISUAL_YELLOW);
+    markPoint(canvas, rotationCentre, 3, VISUAL_WHITE);
+
+    return saveVisualOutput(canvas, "polygon_operations_output.bmp");
 }
-
