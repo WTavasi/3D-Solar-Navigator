@@ -57,8 +57,15 @@ inline std::set<std::pair<int, int>> drawMidpointEllipse(
         + rx2 * (y - 1) * (y - 1)
         - rx2 * ry2;
 
+    // Furthest x drawn on the horizontal axis (y = 0).
+    long long lastXOnAxis = 0;
+
     while (y >= 0) {
         addPoints(static_cast<int>(x), static_cast<int>(y));
+
+        if (y == 0) {
+            lastXOnAxis = x;
+        }
 
         y--;
         dy -= 2 * rx2;
@@ -70,6 +77,14 @@ inline std::set<std::pair<int, int>> drawMidpointEllipse(
             dx += 2 * ry2;
             p2 += dx - dy + rx2;
         }
+    }
+
+    // Very flat ellipses (horizontal radius at least 16 times the
+    // vertical one, or a vertical radius of 0 or 1) reach y = 0 before
+    // x reaches the horizontal radius. Finish the tips along the axis so
+    // (centerX +/- horizontalRadius, centerY) is always drawn.
+    for (long long tipX = lastXOnAxis + 1; tipX <= horizontalRadius; tipX++) {
+        addPoints(static_cast<int>(tipX), 0);
     }
 
     return ellipsePoints;
