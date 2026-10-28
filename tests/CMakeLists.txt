@@ -60,3 +60,8 @@ stellar_add_unit_test(test_catmull_rom_spline)
 
 # Integration tests
 stellar_add_integration_test(test_solar_system_scene)
+
+# Visual tests (write images into output/)
+stellar_add_visual_test(raster_canvas_test)
+stellar_add_visual_test(dda_graphics_test)
+stellar_add_visual_test(bresenham_graphics_test)
