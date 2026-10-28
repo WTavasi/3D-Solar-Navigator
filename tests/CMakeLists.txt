@@ -21,3 +21,4 @@ endfunction()
 
 stellar_add_unit_test(test_raster_canvas)
 stellar_add_unit_test(test_dda)
+stellar_add_unit_test(test_bresenham)
