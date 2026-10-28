@@ -132,9 +132,21 @@ inline std::vector<FillSpan> computeFillSpans(const std::vector<Point>& polygon)
                 static_cast<int>(std::floor(intersections[index + 1]));
 
             // A pair closer together than one pixel fills nothing.
-            if (startingX <= endingX) {
-                spans.push_back({scanY, startingX, endingX});
+            if (startingX > endingX) {
+                continue;
             }
+
+            // At a concave vertex two spans can meet on the same pixel
+            // (for example 0..20 and 20..40). Join them so no pixel is
+            // filled twice.
+            if (!spans.empty() &&
+                spans.back().y == scanY &&
+                startingX <= spans.back().endX) {
+                spans.back().endX = std::max(spans.back().endX, endingX);
+                continue;
+            }
+
+            spans.push_back({scanY, startingX, endingX});
         }
     }
 
