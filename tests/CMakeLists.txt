@@ -36,7 +36,10 @@ endfunction()
 # Adds tests/visual/<name>.cpp. It saves a BMP into the project's output/
 # folder as visual evidence and fails if nothing is drawn or saved.
 function(stellar_add_visual_test name)
-    add_executable(${name} visual/${name}.cpp)
+    add_executable(stellar
+    src/main.cpp
+    src/camera/camera.cpp
+    )
     target_include_directories(${name} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/support)
     target_compile_definitions(${name} PRIVATE
         STELLAR_OUTPUT_DIR="${PROJECT_SOURCE_DIR}/output"
@@ -57,6 +60,11 @@ stellar_add_unit_test(test_midpoint_circle)
 stellar_add_unit_test(test_midpoint_ellipse)
 stellar_add_unit_test(test_bezier_curve)
 stellar_add_unit_test(test_catmull_rom_spline)
+stellar_add_unit_test(test_camera)
+
+target_sources(test_camera PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
+)
 
 # Integration tests
 stellar_add_integration_test(test_solar_system_scene)
