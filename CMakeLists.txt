@@ -17,6 +17,7 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # Main application
 add_executable(stellar
     src/main.cpp
+    src/camera/camera.cpp
 )
 
 # Line drawing algorithms
@@ -65,4 +66,21 @@ option(STELLAR_BUILD_TESTS "Build the unit, integration and visual tests" ON)
 if(STELLAR_BUILD_TESTS)
     enable_testing()
     add_subdirectory(tests)
+endif()
+
+# Interactive 3D camera demonstration (Windows)
+if(WIN32)
+    add_executable(camera_interactive_demo WIN32
+        src/camera/camera_interactive_demo.cpp
+        src/camera/camera.cpp
+    )
+
+    target_include_directories(camera_interactive_demo PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+    )
+
+    target_link_libraries(camera_interactive_demo PRIVATE
+        user32
+        gdi32
+    )
 endif()

@@ -1,0 +1,8 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Laptop Data/Desktop/COMPUTER GRAPHICS/3D-Solar-Navigator/build-gcc/cmake_install.cmake",
+		"C:/Laptop Data/Desktop/COMPUTER GRAPHICS/3D-Solar-Navigator/build-gcc/tests/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
