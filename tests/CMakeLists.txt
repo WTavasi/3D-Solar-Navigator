@@ -82,3 +82,5 @@ stellar_add_visual_test(ellipse_graphics_test)
 stellar_add_visual_test(bezier_graphics_test)
 stellar_add_visual_test(catmull_rom_graphics_test)
 stellar_add_visual_test(solar_system_graphics_test)
+# Orbit mathematics tests
+stellar_add_unit_test(test_orbit_math)

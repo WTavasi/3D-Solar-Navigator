@@ -8,6 +8,7 @@
 #include "algorithms/shapes/midpoint_circle.h"
 #include "algorithms/shapes/midpoint_ellipse.h"
 #include "raster/raster_canvas.h"
+#include "algorithms/orbit/orbit_math.h"
 
 struct Planet {
     const char* name;
@@ -46,18 +47,43 @@ inline std::vector<Planet> solarSystemPlanets() {
     };
 }
 
+// Approximate orbital periods in Earth days.
+// The order matches solarSystemPlanets().
+inline std::vector<double> solarSystemOrbitalPeriods() {
+    return {
+        88.0,       // Mercury
+        225.0,      // Venus
+        365.25,     // Earth
+        687.0,      // Mars
+        4333.0,     // Jupiter
+        10759.0,    // Saturn
+        30687.0,    // Uranus
+        60190.0     // Neptune
+    };
+}
+
 inline double degreesToRadians(double degrees) {
     const double pi = 3.14159265358979323846;
     return degrees * pi / 180.0;
 }
 
 // Centre of a planet on its elliptical orbit around (sunX, sunY).
-inline Pixel planetPosition(const Planet& planet, int sunX, int sunY) {
-    double radians = degreesToRadians(planet.angle);
+inline Pixel planetPosition(
+    const Planet& planet,
+    int sunX,
+    int sunY
+) {
+    const double radians =
+        orbit::degreesToRadians(planet.angle);
 
+    // Preserve existing integer pixel conversion behaviour.
     return {
-        sunX + static_cast<int>(planet.orbitX * std::cos(radians)),
-        sunY + static_cast<int>(planet.orbitY * std::sin(radians))
+        sunX + static_cast<int>(
+            planet.orbitX * std::cos(radians)
+        ),
+        sunY + static_cast<int>(
+            planet.orbitY * std::sin(radians)
+        )
     };
 }
 
@@ -122,11 +148,25 @@ inline int ringRadiusY(const Planet& planet) {
 }
 
 // Draws the whole scene centred on the canvas.
-inline void renderSolarSystem(RasterCanvas& canvas) {
+inline void renderSolarSystem(
+    RasterCanvas& canvas,
+    double elapsedDays = 0.0
+) {
     const int sunX = canvas.getWidth() / 2;
     const int sunY = canvas.getHeight() / 2;
-    const std::vector<Planet> planets = solarSystemPlanets();
+   std::vector<Planet> planets = solarSystemPlanets();
 
+const std::vector<double> periods =
+    solarSystemOrbitalPeriods();
+
+// Update each planet's angle according to elapsed days.
+for (std::size_t i = 0; i < planets.size(); ++i) {
+    planets[i].angle = orbit::advanceAngle(
+        planets[i].angle,
+        elapsedDays,
+        periods[i]
+    );
+}
     // Orbits first
     for (const Planet& planet : planets) {
         drawEllipseOutline(canvas, sunX, sunY,
