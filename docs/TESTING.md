@@ -72,7 +72,7 @@ ctest --test-dir build --output-on-failure
 A successful run ends with:
 
 ```text
-100% tests passed, 0 tests failed out of 22
+100% tests passed, 0 tests failed out of 28
 ```
 
 ### 2.2 Run one level or one test
@@ -110,7 +110,7 @@ The visual tests save their images into `output/` in the project root, wherever 
 
 ## 3. Test Report
 
-**Result:** 96 of 96 test cases passed in 11 test programs, and all 11 visual tests produced their images. Built with GCC 13 and Clang 18 (C++17, `-Wall -Wextra -Wpedantic`, no warnings) on 28 October 2026.
+**Result:** 126 of 126 test cases passed in 13 test programs written with the project framework, and all 13 visual tests produced their images. Eugene's `test_camera` and Mornylyne's `test_orbit_math`, which use `assert()`, also pass, for 28 CTest tests in total. Built with GCC 13 and Clang 18 (C++17, `-Wall -Wextra -Wpedantic`) on 15 November 2026; the only warnings come from the two `assert()` tests (see section 5).
 
 **Kind:** H = hand-worked example, P = property over many inputs, E = edge case, X = cross-check, R = regression test for a defect found during testing.
 
@@ -266,8 +266,52 @@ The project models the real Solar System, so the scene is checked against real f
 | SCN-09 | The rendered image shows the Sun, every planet and Saturn's rings | H | Pass |
 | SCN-10 | Every orbit is visible where no body is drawn over it | P | Pass |
 | SCN-11 | Rendering is repeatable and leaves the corners empty | P | Pass |
+| SCN-12 | Over a whole Neptune orbit (60,190 days) nothing overlaps or leaves the canvas | P | Pass |
+| SCN-13 | At any time each planet stays on its own orbit | P | Pass |
+| SCN-14 | The image rendered at day 100 shows each planet at its new position | H | Pass |
+| SCN-15 | Day 0 is the default render, and a year brings Earth back | H | Pass |
+| SCN-16 | Planets are solid discs of exactly their radius | P | Pass |
+| SCN-17 | Each planet's highlight is white and sits inside the planet | P | Pass |
+| SCN-18 | The 90 asteroid belt points lie between Mars and Jupiter | P | Pass |
+| SCN-19 | Saturn's rings are two ellipses, one pixel apart | H | Pass |
 
-### 3.12 Visual tests
+### 3.12 Orbit timing (`test_orbit_timing`)
+
+Checks `algorithms/orbit/orbit_math.h` and the orbital periods in the scene.
+
+| ID | Expected behaviour | Kind | Result |
+|---|---|---|---|
+| ORB-01 | Angles convert to radians and wrap into 0 to 360 | H | Pass |
+| ORB-02 | Elliptical positions at the four quarter angles | H | Pass |
+| ORB-03 | Every elliptical position lies on its ellipse | P | Pass |
+| ORB-04 | The angle advances by 360 degrees per orbital period | H | Pass |
+| ORB-05 | Negative elapsed time runs the orbit backwards | E | Pass |
+| ORB-06 | Invalid periods and times are rejected | E | Pass |
+| ORB-07 | `positionAtTime` equals advancing the angle then placing it | X | Pass |
+| ORB-08 | There is one orbital period for every planet | E | Pass |
+| ORB-09 | Periods follow the real Solar System | P | Pass |
+| ORB-10 | Each planet is back at its start after one full period | P | Pass |
+| ORB-11 | Orbit maths and the scene place planets at the same pixel | X | Pass |
+
+### 3.13 Camera projection (`test_camera_projection`)
+
+Checks `scene/camera.h` and `src/camera/camera.cpp`.
+
+| ID | Expected behaviour | Kind | Result |
+|---|---|---|---|
+| CAM-01 | The target projects to the centre of the screen | H | Pass |
+| CAM-02 | The camera position follows yaw, pitch and distance | H | Pass |
+| CAM-03 | Projection matches the hand-worked perspective formula | H | Pass |
+| CAM-04 | Halving the depth doubles the distance from the centre | P | Pass |
+| CAM-05 | Points behind or too close to the camera are not visible | E | Pass |
+| CAM-06 | Points that land off the screen are not visible | E | Pass |
+| CAM-07 | An invalid screen size or field of view projects nothing | E | Pass |
+| CAM-08 | Zoom scales the distance within 20 to 10,000 | E | Pass |
+| CAM-09 | Pitch stops at plus and minus 89 degrees; yaw does not | E | Pass |
+| CAM-10 | Panning moves the target along the camera's right and up axes | H | Pass |
+| CAM-11 | Reset restores every camera setting | H | Pass |
+
+### 3.14 Visual tests
 
 | Test | Image in `output/` | What to look for |
 |---|---|---|
@@ -281,7 +325,9 @@ The project models the real Solar System, so the scene is checked against real f
 | `ellipse_graphics_test` | `ellipse_graphics_test.bmp` | Wide, tall and very flat ellipses; flat tips reach the white ticks |
 | `bezier_graphics_test` | `bezier_output.bmp` | Curve from the first to the last control point, inside the control polygon |
 | `catmull_rom_graphics_test` | `catmull_rom_output.bmp` | Spline through all six control points |
-| `solar_system_graphics_test` | `solar_system_output.bmp` | Sun, eight planets on their orbits, Saturn's rings |
+| `solar_system_graphics_test` | `solar_system_output.bmp` | Sun, eight filled planets on their orbits, Saturn's rings, the asteroid belt |
+| `camera_projection_graphics_test` | `camera_projection_output.bmp` | The system through the 3D camera from above, at 35 degrees and nearly edge-on, drawn with our own algorithms |
+| `orbit_motion_graphics_test` | `orbit_motion_output.bmp` | The scene at day 120 with each planet's path since day 0; inner planets move furthest |
 
 ## 4. Defects Found and Fixed
 
@@ -296,7 +342,7 @@ The project models the real Solar System, so the scene is checked against real f
 | 7 | `raster_canvas.h` used `std::abs` without including `<cstdlib>`, which only compiled because GCC includes it indirectly. | Code review | Added the include. |
 | 8 | Saturn's rings were chosen by checking whether the planet's name starts with "S", which would also match the Sun. | Code review | A `hasRings` flag on each planet. |
 
-To confirm the tests can actually fail, deliberate faults were introduced and the tests were run against them: stopping the DDA loop one step early failed five DDA tests, the old ellipse header failed ELL-03 and ELL-07, and shrinking Earth below Venus failed SCN-03.
+To confirm the tests can actually fail, deliberate faults were introduced and the tests were run against them: stopping the DDA loop one step early failed five DDA tests, the old ellipse header failed ELL-03 and ELL-07, shrinking Earth below Venus failed SCN-03, and growing Saturn by 2 pixels failed SCN-12.
 
 ## 5. Known Limitations and Observations
 
@@ -305,13 +351,16 @@ These are behaviours of the current algorithms that were not changed, because th
 - **Sutherland-Hodgman and concave polygons (CLP-09).** When the window cuts a concave polygon into separate pieces, the result is one polygon joined by edges along the window boundary. The area is correct and filling looks right, but drawing its outline shows an extra line along the window edge.
 - **Fill span convention (FIL-02).** Rows include the lower edge and exclude the upper edge, but each span includes both its left and right ends. Two polygons sharing a vertical edge would both fill that column of pixels.
 - **DDA rounding.** Drawing a line in the opposite direction can round half-pixel ties differently, so the two directions may differ by one pixel in a few places. Both stay within half a pixel of the true line (DDA-06).
-- **Scene highlight.** Each planet's white highlight is drawn on the scene's white background, so it is not visible. A dark scene background would fix this; that is a scene design decision.
+- **Scene highlight (resolved).** The white highlight used to sit on a white background inside outline planets and could not be seen. Since the planets became filled discs it shows (SCN-17).
+- **Jupiter and Saturn come very close (SCN-12).** When they line up, Saturn's rings pass within about a pixel of Jupiter. Nothing overlaps today, but making either one larger, or moving their orbits closer, will fail SCN-12.
+- **Similar planet colours.** Venus (230, 160, 60) and Jupiter (220, 140, 70) are nearly the same orange, and Earth (40, 110, 250) and Neptune (60, 90, 245) nearly the same blue. SCN-04 only checks that no two colours are identical; a stricter check would fail today, so this is left to the scene design.
+- **`assert()` tests check nothing in Release builds.** `tests/unit/test_camera.cpp` and `tests/unit/test_orbit_math.cpp` use `assert()`, which the Release build used by GitHub Actions removes, so in CI they always pass. `test_camera_projection` and `test_orbit_timing` cover the same behaviour with the project's `CHECK` macros, which run in every build. The original files were left as their authors wrote them.
 - **Orbit centre.** Orbits are centred on the Sun. In the real Solar System the Sun sits at one focus of each elliptical orbit, not at the centre. This matters only if the orbit maths aims for real orbital shapes.
 
 ## 6. Future Testing
 
-The current tests cover the 2D raster pipeline. As the planned features are added, the same framework can test them:
+The tests now cover the 2D raster pipeline, the scene over time, the orbit maths and the 3D camera. As the planned features are added, the same framework can test them:
 
-- **Transformations and camera:** matrix multiplication, rotation about each axis, view and projection matrices against hand-worked results.
-- **Animation:** planet positions after a known time step, and orbit speed ordering (inner planets move faster).
+- **Interactive demo:** its planet list and orbit speeds live inside the Windows-only `camera_interactive_demo.cpp`, so CI on Linux cannot check them. Moving that data into a shared header would make it testable.
+- **Moon and axial spin:** a moon's position relative to its planet, and spin angle after a known time.
 - **Integration:** the main `stellar` application rendering a frame and saving it as evidence.
