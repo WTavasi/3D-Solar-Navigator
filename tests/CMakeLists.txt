@@ -97,6 +97,7 @@ target_sources(test_camera_projection PRIVATE
 
 # Visual tests for the camera and orbital motion
 stellar_add_visual_test(camera_projection_graphics_test)
+stellar_add_visual_test(orbit_motion_graphics_test)
 
 target_sources(camera_projection_graphics_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
