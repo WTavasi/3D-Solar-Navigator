@@ -87,3 +87,10 @@ stellar_add_unit_test(test_orbit_math)
 
 # Orbit timing tests using the project test framework
 stellar_add_unit_test(test_orbit_timing)
+
+# Camera projection tests using the project test framework
+stellar_add_unit_test(test_camera_projection)
+
+target_sources(test_camera_projection PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
+)
