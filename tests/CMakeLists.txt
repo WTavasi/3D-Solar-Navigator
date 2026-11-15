@@ -84,3 +84,6 @@ stellar_add_visual_test(catmull_rom_graphics_test)
 stellar_add_visual_test(solar_system_graphics_test)
 # Orbit mathematics tests
 stellar_add_unit_test(test_orbit_math)
+
+# Orbit timing tests using the project test framework
+stellar_add_unit_test(test_orbit_timing)
