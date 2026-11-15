@@ -378,8 +378,11 @@ TEST_CASE("SCN-15 day 0 is the default render and a year brings Earth back") {
     }
     CHECK_EQ(differences, 0);
 
-    const Planet& earthStart = findPlanet(solarSystemPlanets(), "Earth");
-    const Planet& earthAfterYear = findPlanet(planetsAtDay(365.25), "Earth");
+    // Keep the lists alive: findPlanet returns a reference into them.
+    const std::vector<Planet> startPlanets = solarSystemPlanets();
+    const std::vector<Planet> yearLaterPlanets = planetsAtDay(365.25);
+    const Planet& earthStart = findPlanet(startPlanets, "Earth");
+    const Planet& earthAfterYear = findPlanet(yearLaterPlanets, "Earth");
     Pixel before = planetPosition(earthStart, SUN_X, SUN_Y);
     Pixel after = planetPosition(earthAfterYear, SUN_X, SUN_Y);
     CHECK(std::abs(before.x - after.x) <= 1 && std::abs(before.y - after.y) <= 1);
@@ -434,8 +437,9 @@ TEST_CASE("SCN-17 each planet's highlight is white and sits inside the planet") 
 
 TEST_CASE("SCN-18 the 90 asteroid belt points lie between Mars and Jupiter") {
     RasterCanvas canvas = renderedScene();
-    const Planet& mars = findPlanet(solarSystemPlanets(), "Mars");
-    const Planet& jupiter = findPlanet(solarSystemPlanets(), "Jupiter");
+    const std::vector<Planet> planets = solarSystemPlanets();
+    const Planet& mars = findPlanet(planets, "Mars");
+    const Planet& jupiter = findPlanet(planets, "Jupiter");
     int beltPixels = 0;
     int misplaced = 0;
 
@@ -460,7 +464,8 @@ TEST_CASE("SCN-18 the 90 asteroid belt points lie between Mars and Jupiter") {
 
 TEST_CASE("SCN-19 Saturn's rings are two ellipses, one pixel apart") {
     RasterCanvas canvas = renderedScene();
-    const Planet& saturn = findPlanet(solarSystemPlanets(), "Saturn");
+    const std::vector<Planet> planets = solarSystemPlanets();
+    const Planet& saturn = findPlanet(planets, "Saturn");
     Pixel center = planetPosition(saturn, SUN_X, SUN_Y);
 
     for (int side : {-1, 1}) {
