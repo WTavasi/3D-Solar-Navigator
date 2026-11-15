@@ -236,6 +236,246 @@ TEST_CASE("SCN-11 rendering is repeatable and leaves the corners empty") {
              BACKGROUND);
 }
 
+// ---------------------------------------------------------------------
+// The scene over time (orbital periods) and the filled planet bodies.
+// ---------------------------------------------------------------------
+
+namespace {
+
+const Color BELT_COLOR = {140, 140, 150};
+
+// The planets with their angles advanced by elapsedDays, the same way
+// renderSolarSystem() moves them.
+std::vector<Planet> planetsAtDay(double elapsedDays) {
+    std::vector<Planet> planets = solarSystemPlanets();
+    std::vector<double> periods = solarSystemOrbitalPeriods();
+
+    for (std::size_t i = 0; i < planets.size() && i < periods.size(); i++) {
+        planets[i].angle = orbit::advanceAngle(planets[i].angle, elapsedDays,
+                                               periods[i]);
+    }
+
+    return planets;
+}
+
+RasterCanvas renderedSceneAtDay(double elapsedDays) {
+    RasterCanvas canvas(SOLAR_SYSTEM_WIDTH, SOLAR_SYSTEM_HEIGHT);
+    renderSolarSystem(canvas, elapsedDays);
+    return canvas;
+}
+
+double orbitValue(int x, int y, int radiusX, int radiusY) {
+    double dx = static_cast<double>(x - SUN_X) / radiusX;
+    double dy = static_cast<double>(y - SUN_Y) / radiusY;
+    return dx * dx + dy * dy;
+}
+
+}  // namespace
+
+TEST_CASE("SCN-12 over a whole Neptune orbit nothing overlaps or leaves the canvas") {
+    // Every day for 60,190 days. Jupiter and Saturn's rings come closest,
+    // within about a pixel, so this guards against any change in sizes
+    // or orbits that would make bodies collide.
+    int overlaps = 0;
+    int offCanvas = 0;
+    const Pixel sun = {SUN_X, SUN_Y};
+
+    for (int day = 0; day <= 60190; day++) {
+        std::vector<Planet> planets = planetsAtDay(day);
+        std::vector<Pixel> centers;
+
+        for (const Planet& planet : planets) {
+            centers.push_back(planetPosition(planet, SUN_X, SUN_Y));
+        }
+
+        for (std::size_t i = 0; i < planets.size(); i++) {
+            int reach = outerRadius(planets[i]);
+
+            if (centers[i].x - reach < 0 || centers[i].x + reach >= SOLAR_SYSTEM_WIDTH ||
+                centers[i].y - reach < 0 || centers[i].y + reach >= SOLAR_SYSTEM_HEIGHT) {
+                offCanvas++;
+            }
+
+            if (distanceBetween(centers[i], sun) <= SUN_RAY_OUTER_RADIUS + reach) {
+                overlaps++;
+            }
+
+            for (std::size_t j = i + 1; j < planets.size(); j++) {
+                if (distanceBetween(centers[i], centers[j]) <=
+                    reach + outerRadius(planets[j])) {
+                    overlaps++;
+                }
+            }
+        }
+    }
+
+    CHECK_EQ(overlaps, 0);
+    CHECK_EQ(offCanvas, 0);
+}
+
+TEST_CASE("SCN-13 at any time each planet stays on its own orbit") {
+    std::vector<Planet> planets = solarSystemPlanets();
+    std::vector<std::set<std::pair<int, int>>> orbits;
+
+    for (const Planet& planet : planets) {
+        orbits.push_back(drawMidpointEllipse(SUN_X, SUN_Y,
+                                             planet.orbitX, planet.orbitY));
+    }
+
+    double worst = 0.0;
+
+    for (int day = 0; day <= 60190; day += 97) {
+        std::vector<Planet> moved = planetsAtDay(day);
+
+        for (std::size_t i = 0; i < moved.size(); i++) {
+            Pixel center = planetPosition(moved[i], SUN_X, SUN_Y);
+            double nearest = 1e9;
+
+            for (const auto& orbitPixel : orbits[i]) {
+                nearest = std::min(nearest,
+                                   std::hypot(center.x - orbitPixel.first,
+                                              center.y - orbitPixel.second));
+            }
+
+            worst = std::max(worst, nearest);
+        }
+    }
+
+    CHECK(worst <= 1.5);
+}
+
+TEST_CASE("SCN-14 the rendered image moves each planet to its new position") {
+    const double day = 100.0;
+    RasterCanvas canvas = renderedSceneAtDay(day);
+
+    for (const Planet& planet : planetsAtDay(day)) {
+        Pixel center = planetPosition(planet, SUN_X, SUN_Y);
+
+        // The centre of a filled planet is its own colour.
+        CHECK_EQ(canvas.getPixel(center.x, center.y), planet.color);
+    }
+
+    // Neptune takes 60,190 days to go round once, so in 100 days it
+    // moves less than one degree.
+    std::vector<Planet> start = solarSystemPlanets();
+    std::vector<Planet> later = planetsAtDay(day);
+    double neptuneMove = std::fabs(later.back().angle - start.back().angle);
+    CHECK(neptuneMove < 1.0);
+}
+
+TEST_CASE("SCN-15 day 0 is the default render and a year brings Earth back") {
+    RasterCanvas byDefault(SOLAR_SYSTEM_WIDTH, SOLAR_SYSTEM_HEIGHT);
+    renderSolarSystem(byDefault);
+    RasterCanvas dayZero = renderedSceneAtDay(0.0);
+
+    int differences = 0;
+    for (int y = 0; y < SOLAR_SYSTEM_HEIGHT; y++) {
+        for (int x = 0; x < SOLAR_SYSTEM_WIDTH; x++) {
+            if (byDefault.getPixel(x, y) != dayZero.getPixel(x, y)) {
+                differences++;
+            }
+        }
+    }
+    CHECK_EQ(differences, 0);
+
+    // Keep the lists alive: findPlanet returns a reference into them.
+    const std::vector<Planet> startPlanets = solarSystemPlanets();
+    const std::vector<Planet> yearLaterPlanets = planetsAtDay(365.25);
+    const Planet& earthStart = findPlanet(startPlanets, "Earth");
+    const Planet& earthAfterYear = findPlanet(yearLaterPlanets, "Earth");
+    Pixel before = planetPosition(earthStart, SUN_X, SUN_Y);
+    Pixel after = planetPosition(earthAfterYear, SUN_X, SUN_Y);
+    CHECK(std::abs(before.x - after.x) <= 1 && std::abs(before.y - after.y) <= 1);
+}
+
+TEST_CASE("SCN-16 planets are solid discs of exactly their radius") {
+    RasterCanvas canvas = renderedScene();
+    int wrongInside = 0;
+    int spillOutside = 0;
+
+    for (const Planet& planet : solarSystemPlanets()) {
+        Pixel center = planetPosition(planet, SUN_X, SUN_Y);
+        int r = planet.radius;
+        Pixel highlight = {center.x - r / 3, center.y - r / 3};
+
+        for (int dy = -r - 3; dy <= r + 3; dy++) {
+            for (int dx = -r - 3; dx <= r + 3; dx++) {
+                Color pixel = canvas.getPixel(center.x + dx, center.y + dy);
+                bool inside = dx * dx + dy * dy <= r * r;
+                bool isHighlight = center.x + dx == highlight.x &&
+                                   center.y + dy == highlight.y;
+
+                if (inside && !isHighlight && pixel != planet.color &&
+                    !(planet.hasRings && pixel == RING_COLOR)) {
+                    wrongInside++;
+                }
+
+                if (!inside && pixel == planet.color) {
+                    spillOutside++;
+                }
+            }
+        }
+    }
+
+    CHECK_EQ(wrongInside, 0);
+    CHECK_EQ(spillOutside, 0);
+}
+
+TEST_CASE("SCN-17 each planet's highlight is white and sits inside the planet") {
+    RasterCanvas canvas = renderedScene();
+
+    for (const Planet& planet : solarSystemPlanets()) {
+        Pixel center = planetPosition(planet, SUN_X, SUN_Y);
+        int offset = planet.radius / 3;
+
+        CHECK(2 * offset * offset <= planet.radius * planet.radius);
+        CHECK_EQ(canvas.getPixel(center.x - offset, center.y - offset),
+                 HIGHLIGHT_COLOR);
+        CHECK(HIGHLIGHT_COLOR != planet.color);
+    }
+}
+
+TEST_CASE("SCN-18 the 90 asteroid belt points lie between Mars and Jupiter") {
+    RasterCanvas canvas = renderedScene();
+    const std::vector<Planet> planets = solarSystemPlanets();
+    const Planet& mars = findPlanet(planets, "Mars");
+    const Planet& jupiter = findPlanet(planets, "Jupiter");
+    int beltPixels = 0;
+    int misplaced = 0;
+
+    for (int y = 0; y < SOLAR_SYSTEM_HEIGHT; y++) {
+        for (int x = 0; x < SOLAR_SYSTEM_WIDTH; x++) {
+            if (canvas.getPixel(x, y) != BELT_COLOR) {
+                continue;
+            }
+
+            beltPixels++;
+
+            if (orbitValue(x, y, mars.orbitX, mars.orbitY) <= 1.0 ||
+                orbitValue(x, y, jupiter.orbitX, jupiter.orbitY) >= 1.0) {
+                misplaced++;
+            }
+        }
+    }
+
+    CHECK_EQ(beltPixels, 90);   // one point every 4 degrees
+    CHECK_EQ(misplaced, 0);
+}
+
+TEST_CASE("SCN-19 Saturn's rings are two ellipses, one pixel apart") {
+    RasterCanvas canvas = renderedScene();
+    const std::vector<Planet> planets = solarSystemPlanets();
+    const Planet& saturn = findPlanet(planets, "Saturn");
+    Pixel center = planetPosition(saturn, SUN_X, SUN_Y);
+
+    for (int side : {-1, 1}) {
+        CHECK_EQ(canvas.getPixel(center.x + side * ringRadiusX(saturn), center.y),
+                 RING_COLOR);
+        CHECK_EQ(canvas.getPixel(center.x + side * (ringRadiusX(saturn) - 1), center.y),
+                 RING_COLOR);
+    }
+}
+
 int main() {
     return testing::runAllTests();
 }

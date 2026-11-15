@@ -84,3 +84,21 @@ stellar_add_visual_test(catmull_rom_graphics_test)
 stellar_add_visual_test(solar_system_graphics_test)
 # Orbit mathematics tests
 stellar_add_unit_test(test_orbit_math)
+
+# Orbit timing tests using the project test framework
+stellar_add_unit_test(test_orbit_timing)
+
+# Camera projection tests using the project test framework
+stellar_add_unit_test(test_camera_projection)
+
+target_sources(test_camera_projection PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
+)
+
+# Visual tests for the camera and orbital motion
+stellar_add_visual_test(camera_projection_graphics_test)
+stellar_add_visual_test(orbit_motion_graphics_test)
+
+target_sources(camera_projection_graphics_test PRIVATE
+    ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
+)
