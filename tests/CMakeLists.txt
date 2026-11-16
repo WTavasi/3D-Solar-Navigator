@@ -102,3 +102,16 @@ stellar_add_visual_test(orbit_motion_graphics_test)
 target_sources(camera_projection_graphics_test PRIVATE
     ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
 )
+
+# Stellar application tests (the app needs the camera and its own sources)
+stellar_add_unit_test(test_bitmap_font)
+stellar_add_unit_test(test_planet_facts)
+stellar_add_integration_test(test_stellar_app)
+stellar_add_visual_test(stellar_app_graphics_test)
+
+foreach(app_test test_stellar_app stellar_app_graphics_test)
+    target_sources(${app_test} PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/app/stellar_app.cpp
+        ${PROJECT_SOURCE_DIR}/src/camera/camera.cpp
+    )
+endforeach()
