@@ -72,7 +72,7 @@ ctest --test-dir build --output-on-failure
 A successful run ends with:
 
 ```text
-100% tests passed, 0 tests failed out of 28
+100% tests passed, 0 tests failed out of 32
 ```
 
 ### 2.2 Run one level or one test
@@ -110,7 +110,7 @@ The visual tests save their images into `output/` in the project root, wherever 
 
 ## 3. Test Report
 
-**Result:** 126 of 126 test cases passed in 13 test programs written with the project framework, and all 13 visual tests produced their images. Eugene's `test_camera` and Mornylyne's `test_orbit_math`, which use `assert()`, also pass, for 28 CTest tests in total. Built with GCC 13 and Clang 18 (C++17, `-Wall -Wextra -Wpedantic`) on 15 November 2026; the only warnings come from the two `assert()` tests (see section 5).
+**Result:** 163 of 163 test cases passed in 16 test programs written with the project framework, and all 14 visual tests produced their images. Eugene's `test_camera` and Mornylyne's `test_orbit_math`, which use `assert()`, also pass, for 32 CTest tests in total. Built with GCC 13 and Clang 18 (C++17, `-Wall -Wextra -Wpedantic`) and run again under AddressSanitizer and UndefinedBehaviorSanitizer on 16 November 2026; the only warnings come from the two `assert()` tests (see section 5).
 
 **Kind:** H = hand-worked example, P = property over many inputs, E = edge case, X = cross-check, R = regression test for a defect found during testing.
 
@@ -311,7 +311,65 @@ Checks `scene/camera.h` and `src/camera/camera.cpp`.
 | CAM-10 | Panning moves the target along the camera's right and up axes | H | Pass |
 | CAM-11 | Reset restores every camera setting | H | Pass |
 
-### 3.14 Visual tests
+### 3.14 Bitmap font (`test_bitmap_font`)
+
+Checks `include/app/bitmap_font.h`, which the application uses for all on-screen text.
+
+| ID | Expected behaviour | Kind | Result |
+|---|---|---|---|
+| FONT-01 | Every glyph is 5 columns by 7 rows | P | Pass |
+| FONT-02 | Has every capital letter and digit | H | Pass |
+| FONT-03 | Lowercase draws as capitals and unknown characters as '?' | E | Pass |
+| FONT-04 | Every visible glyph lights pixels and space lights none | P | Pass |
+| FONT-05 | No two glyphs share the same shape | P | Pass |
+| FONT-06 | Text width counts characters and spacing | H | Pass |
+| FONT-07 | `drawText` sets exactly the glyph's pixels | H | Pass |
+| FONT-08 | Scale turns each font pixel into a square block | P | Pass |
+| FONT-09 | Text off the canvas is clipped, not drawn out of range | E | Pass |
+
+### 3.15 Body facts (`test_planet_facts`)
+
+Checks `include/app/planet_facts.h`, the information shown when a body is selected.
+
+| ID | Expected behaviour | Kind | Result |
+|---|---|---|---|
+| FACT-01 | Lists the Sun, the eight planets in scene order, then the Moon | X | Pass |
+| FACT-02 | Every body has every field filled in | P | Pass |
+| FACT-03 | Venus and Uranus spin backwards, the others forwards | H | Pass |
+| FACT-04 | Rotation periods match known values | H | Pass |
+| FACT-05 | Moon counts for the rocky planets | H | Pass |
+| FACT-06 | `factsFor` finds bodies by name and returns empty for others | E | Pass |
+| FACT-07 | Text only uses characters the bitmap font can draw | X | Pass |
+
+### 3.16 Stellar application (`test_stellar_app`)
+
+Checks `StellarApp` (`include/app/stellar_app.h`, `src/app/stellar_app.cpp`) without opening a window: input is sent as calls and frames are rendered onto a canvas.
+
+| ID | Expected behaviour | Kind | Result |
+|---|---|---|---|
+| APP-01 | Starts on day 0, running, with nothing selected | H | Pass |
+| APP-02 | Has the Sun, eight planets, the Moon and the comet | H | Pass |
+| APP-03 | Bodies are sorted far to near for the painter's algorithm | P | Pass |
+| APP-04 | Time moves the planets along their orbits | H | Pass |
+| APP-05 | Planets keep their orbit plane and return after one period | P | Pass |
+| APP-06 | The Moon stays the same distance from Earth as it orbits | P | Pass |
+| APP-07 | The comet's Bézier path is smooth and closed | P | Pass |
+| APP-08 | Speed steps up and down within limits | E | Pass |
+| APP-09 | Space pauses time but the app keeps responding | H | Pass |
+| APP-10 | Planets spin, and Venus spins the other way to Earth | H | Pass |
+| APP-11 | Clicking a planet selects it and clicking space clears it | H | Pass |
+| APP-12 | Dragging rotates the camera instead of selecting | H | Pass |
+| APP-13 | The camera eases onto the selected body and back to the Sun | H | Pass |
+| APP-14 | Number keys select bodies and unknown names are refused | E | Pass |
+| APP-15 | The wheel zooms and R resets the view | H | Pass |
+| APP-16 | The tour flies through its viewpoints and then ends | H | Pass |
+| APP-17 | Any camera input stops the tour | E | Pass |
+| APP-18 | Renders for many days and camera angles without failing | P | Pass |
+| APP-19 | The Sun is drawn in warm, bright colours at the centre | H | Pass |
+| APP-20 | The information panel is drawn for a body away from the centre | E | Pass |
+| APP-21 | A resized app projects into the new size | H | Pass |
+
+### 3.17 Visual tests
 
 | Test | Image in `output/` | What to look for |
 |---|---|---|
@@ -328,6 +386,7 @@ Checks `scene/camera.h` and `src/camera/camera.cpp`.
 | `solar_system_graphics_test` | `solar_system_output.bmp` | Sun, eight filled planets on their orbits, Saturn's rings, the asteroid belt |
 | `camera_projection_graphics_test` | `camera_projection_output.bmp` | The system through the 3D camera from above, at 35 degrees and nearly edge-on, drawn with our own algorithms |
 | `orbit_motion_graphics_test` | `orbit_motion_output.bmp` | The scene at day 120 with each planet's path since day 0; inner planets move furthest |
+| `stellar_app_graphics_test` | `stellar_app_overview.bmp`, `stellar_app_selected.bmp`, `stellar_app_tour.bmp` | The application: shaded planets, the Moon, the comet, the facts panel for Earth, the top-view map and a frame from the guided tour |
 
 ## 4. Defects Found and Fixed
 
@@ -359,8 +418,7 @@ These are behaviours of the current algorithms that were not changed, because th
 
 ## 6. Future Testing
 
-The tests now cover the 2D raster pipeline, the scene over time, the orbit maths and the 3D camera. As the planned features are added, the same framework can test them:
+The tests now cover the 2D raster pipeline, the scene over time, the orbit maths, the 3D camera and the Stellar application. Remaining gaps:
 
-- **Interactive demo:** its planet list and orbit speeds live inside the Windows-only `camera_interactive_demo.cpp`, so CI on Linux cannot check them. Moving that data into a shared header would make it testable.
-- **Moon and axial spin:** a moon's position relative to its planet, and spin angle after a known time.
-- **Integration:** the main `stellar` application rendering a frame and saving it as evidence.
+- **The Windows window layer** (`src/main.cpp` on Windows) only forwards input and copies pixels, so it is checked by hand on Windows (see `docs/RUNNING.md`). Everything it calls is tested through `StellarApp`.
+- **The interactive camera demo:** its planet list and orbit speeds live inside the Windows-only `camera_interactive_demo.cpp`, so CI on Linux cannot check them. Moving that data into a shared header would make it testable.
