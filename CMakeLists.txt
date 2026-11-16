@@ -84,3 +84,9 @@ if(WIN32)
         gdi32
     )
 endif()
+
+# Stellar application (see docs/RUNNING.md)
+target_sources(stellar PRIVATE src/app/stellar_app.cpp src/camera/camera.cpp)
+if(WIN32)
+    target_link_libraries(stellar PRIVATE user32 gdi32)
+endif()
